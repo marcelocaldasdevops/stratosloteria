@@ -39,3 +39,6 @@ yarn-error.log*
 
 # Temporary files
 /home/marcelo/.gemini/tmp/
+
+# Agent configuration
+.agent/
