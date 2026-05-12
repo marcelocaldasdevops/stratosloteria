@@ -53,19 +53,33 @@ getBordas(n: number, cols: number, rows: number, modalityName?: string): boolean
   let num = n;
   if (modalityName === 'LOTOMANIA') {
     // Lotomania 00-99 is essentially 1-100 shifted
-    num = n === 0 ? 100 : n; 
+    num = n === 0 ? 100 : n;
   }
   let r = Math.floor((num - 1) / cols) + 1;
   let c = ((num - 1) % cols) + 1;
   return (r === 1 || r === rows || c === 1 || c === cols);
 },
 
-analisarJogo(nums: number[], mod: Modality) {
+getFib(max: number): number[] {
+  const f = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
+  return f.filter(v => v <= max);
+},
+
+analisarJogo(nums: number[], mod: Modality): {
+  soma: number;
+  pares: number;
+  impares: number;
+  primos: number;
+  fibonacci: number;
+  moldura: number;
+  maxSeq: number;
+  nearPeers: number;
+} {
   const soma = nums.reduce((a, b) => a + b, 0);
   const pares = nums.filter(n => n % 2 === 0).length;
   const impares = nums.length - pares;
   const primos = nums.filter(n => n > 1 && this.ehPrimo(n)).length;
-  const fibPool = this.getFib(mod.total);
+  const fibPool: number[] = this.getFib(mod.total);
   const fibonacci = nums.filter(n => fibPool.includes(n)).length;
   const moldura = nums.filter(n => this.getBordas(n, mod.grid[0], mod.grid[1], mod.name)).length;
 
@@ -90,3 +104,4 @@ analisarJogo(nums: number[], mod: Modality) {
   return { soma, pares, impares, primos, fibonacci, moldura, maxSeq, nearPeers };
 }
 };
+
