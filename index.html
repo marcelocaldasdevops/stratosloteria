@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STRATOS LOTERIA — Intelligence Engine</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* 
+       =========================================================
+       DESIGN SYSTEM: CYBER-TECHNICAL HUD
+       ========================================================= 
+    */
+    :root {
+      --bg-deep: #050508;
+      --bg-panel: #0c0d14;
+      --bg-card: #121420;
+      --accent-primary: #06b6d4; /* Cyan */
+      --accent-secondary: #10b981; /* Emerald */
+      --accent-danger: #f43f5e;
+      --accent-warning: #f59e0b;
+      --border-dim: #1e293b;
+      --border-bright: #334155;
+      --text-main: #f1f5f9;
+      --text-dim: #94a3b8;
+      --text-muted: #475569;
+      --font-main: 'Outfit', 'Inter', system-ui, sans-serif;
+      --radius-sharp: 2px;
+      --shadow-glow: 0 0 15px rgba(6, 182, 212, 0.15);
+    }
+
+    body.light-mode {
+      --bg-deep: #f8fafc;
+      --bg-panel: #f1f5f9;
+      --bg-card: #ffffff;
+      --text-main: #0f172a;
+      --text-dim: #475569;
+      --border-dim: #cbd5e1;
+      --border-bright: #94a3b8;
+      --shadow-glow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      background-color: var(--bg-deep);
+      color: var(--text-main);
+      font-family: var(--font-main);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbar Customizada */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-deep); }
+    ::-webkit-scrollbar-thumb { background: var(--accent-primary); border-radius: 10px; }
+
+    header {
+      background: var(--bg-panel);
+      border-bottom: 2px solid var(--accent-primary);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-logo {
+      font-weight: 800;
+      font-size: 1.5rem;
+      letter-spacing: -0.05em;
+      color: var(--accent-primary);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .brand-logo span { color: var(--text-main); font-weight: 300; }
+
+    #api-status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: rgba(0,0,0,0.3);
+      padding: 0.25rem 0.75rem;
+      border: 1px solid var(--border-bright);
+      text-transform: uppercase;
+    }
+
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-online { background: var(--accent-secondary); box-shadow: 0 0 8px var(--accent-secondary); }
+    .dot-offline { background: var(--accent-danger); box-shadow: 0 0 8px var(--accent-danger); }
+
+    /* Navigation */
+    nav {
+      background: var(--bg-panel);
+      padding: 0 2rem;
+      display: flex;
+      border-bottom: 1px solid var(--border-dim);
+      overflow-x: auto;
+    }
+
+    .nav-link {
+      padding: 1rem 1.5rem;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover { color: var(--accent-primary); }
+    .nav-link.active {
+      color: var(--accent-primary);
+      border-bottom-color: var(--accent-primary);
+      background: rgba(6, 182, 212, 0.05);
+    }
+
+    /* Layout HUD */
+    main {
+      padding: 2rem;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .hud-grid {
+      display: grid;
+      grid-template-columns: 350px 1fr 380px;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1200px) {
+      .hud-grid { grid-template-columns: 1fr; }
+    }
+
+    .hud-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-dim);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .hud-panel::before {
+      content: '';
+      position: absolute;
+      top: -1px; left: -1px;
+      width: 10px; height: 10px;
+      border-top: 2px solid var(--accent-primary);
+      border-left: 2px solid var(--accent-primary);
+    }
+
+    .panel-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-dim);
+      background: rgba(255,255,255,0.02);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-header h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-primary);
+    }
+
+    .panel-content { padding: 1.5rem; flex: 1; }
+
+    /* Forms */
+    .field-group { margin-bottom: 1.25rem; }
+    .field-group label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }
+
+    .input-tech {
+      width: 100%;
+      background: #000;
+      border: 1px solid var(--border-bright);
+      color: var(--accent-secondary);
+      padding: 0.75rem;
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      outline: none;
+      border-radius: var(--radius-sharp);
+    }
+
+    .input-tech:focus { border-color: var(--accent-primary); box-shadow: var(--shadow-glow); }
+
+    .btn-tech {
+      width: 100%;
+      padding: 1rem;
+      background: var(--accent-primary);
+      color: #000;
+      border: none;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.2s;
+      clip-path: polygon(0 0, 100% 0, 100% 80%, 90% 100%, 0 100%);
+    }
+
+    .btn-tech:hover { background: var(--accent-secondary); transform: translateY(-2px); }
+    .btn-tech:active { transform: translateY(0); }
+
+    /* Loto Numbers */
+    .loto-grid {
+      display: grid;
+      gap: 4px;
+      margin-top: 1rem;
+    }
+
+    .loto-cell {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-deep);
+      border: 1px solid var(--border-dim);
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+
+    .loto-cell:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+    .loto-cell.fixed { background: var(--accent-secondary); color: #000; border-color: var(--accent-secondary); }
+    .loto-cell.excluded { background: var(--accent-danger); color: #fff; border-color: var(--accent-danger); opacity: 0.4; }
+
+    /* Game Output */
+    .game-card {
+      background: #000;
+      border-left: 4px solid var(--accent-primary);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+    .ball-container { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+    .ball {
+      width: 38px; height: 38px;
+      border: 2px solid var(--accent-primary);
+      color: var(--accent-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900;
+      font-size: 0.9rem;
+    }
+
+    .meta-tags { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
+    .tag { font-size: 0.65rem; background: var(--border-dim); color: var(--text-dim); padding: 0.2rem 0.5rem; text-transform: uppercase; font-weight: 700; }
+
+    /* Charts & Tabs */
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Heatmap colors */
+    .heat-hot { background: #ef4444 !important; border-color: #ef4444 !important; }
+    .heat-med { background: #3b82f6 !important; border-color: #3b82f6 !important; }
+    .heat-cold { background: #10b981 !important; border-color: #10b981 !important; }
+
+    /* Responsible Section */
+    .warning-box {
+      border: 1px solid var(--accent-warning);
+      background: rgba(245, 158, 11, 0.05);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .warning-box h2 { color: var(--accent-warning); font-size: 1.2rem; margin-bottom: 0.5rem; text-transform: uppercase; }
+
+    /* Utilities */
+    .hidden { display: none !important; }
+    .mt-4 { margin-top: 1rem; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+    /* Strategies */
+    .strat-btn {
+      flex: 1;
+      background: transparent;
+      border: 1px solid var(--border-bright);
+      color: var(--text-dim);
+      padding: 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .strat-btn.active { border-color: var(--accent-primary); color: var(--accent-primary); background: rgba(6, 182, 212, 0.1); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand-logo">STRATOS<span>LOTERIA</span></div>
+  <div style="display: flex; gap: 1rem; align-items: center;">
+    <div id="api-status-badge">
+      <div class="status-dot dot-offline" id="status-dot"></div>
+      <span id="status-text">DESCONECTADO</span>
+    </div>
+    <button id="theme-btn" style="background: none; border: 1px solid var(--border-bright); color: var(--text-main); cursor: pointer; padding: 0.4rem;">🌓</button>
+  </div>
+</header>
+
+<nav>
+  <a class="nav-link active" onclick="showTab('generator')">GERADOR</a>
+  <a class="nav-link" onclick="showTab('prob')">ANÁLISE</a>
+  <a class="nav-link" onclick="showTab('stats')">MONTE CARLO</a>
+  <a class="nav-link" onclick="showTab('safety')">JOGO CONSCIENTE</a>
+</nav>
+
+<main>
+  <!-- TAB: GENERATOR -->
+  <div id="tab-generator" class="tab-pane active">
+    <div class="hud-grid">
+      <!-- Left Panel: Config -->
+      <div class="hud-panel">
+        <div class="panel-header"><h3>CONFIGURAÇÃO BASE</h3></div>
+        <div class="panel-content">
+          <div class="field-group">
+            <label>MODALIDADE</label>
+            <select id="sel-mod" class="input-tech" onchange="initModality()">
+              <option value="MEGA_SENA">MEGA-SENA</option>
+              <option value="LOTOFACIL">LOTOFÁCIL</option>
+              <option value="QUINA">QUINA</option>
+              <option value="LOTOMANIA">LOTOMANIA</option>
+              <option value="DUPLA_SENA">DUPLA-SENA</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>NÚMEROS POR JOGO: <span id="label-num-val">6</span></label>
+            <input type="range" id="range-num" class="input-tech" style="height: 5px; padding: 0;" oninput="updateRangeLabel()">
+          </div>
+          <div class="field-group">
+            <label>TOTAL DE JOGOS (1-50)</label>
+            <input type="number" id="input-qty" class="input-tech" value="5" min="1" max="50">
+          </div>
+          <div class="field-group">
+            <label>MODO ESTRATÉGICO</label>
+            <div style="display: flex; gap: 4px;">
+              <button class="strat-btn active" onclick="setStrat('bal', this)">BALANCEADO</button>
+              <button class="strat-btn" onclick="setStrat('hot', this)">QUENTES</button>
+              <button class="strat-btn" onclick="setStrat('border', this)">MOLDURA</button>
+            </div>
+          </div>
+          <div style="margin-top: 2rem; padding: 1rem; background: #000; border: 1px solid var(--border-dim);">
+             <label style="font-size: 0.6rem; color: var(--text-muted);">COMBINAÇÕES TOTAIS</label>
+             <div id="stat-comb" style="font-size: 1.2rem; font-weight: 900; color: var(--accent-secondary);">0</div>
+             <label style="font-size: 0.6rem; color: var(--text-muted); margin-top: 0.5rem; display: block;">PROBABILIDADE BASE</label>
+             <div id="stat-prob" style="font-size: 1rem; font-weight: 700; color: var(--accent-primary);">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Panel: Advanced Filters -->
+      <div class="hud-panel">
+        <div class="panel-header"><h3>FILTROS LÓGICOS</h3> <button class="strat-btn" style="width: auto; padding: 0 1rem;" onclick="clearFilters()">LIMPAR</button></div>
+        <div class="panel-content">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+             <div class="field-group">
+               <label>SOMA (MIN)</label>
+               <input type="number" id="f-soma-min" class="input-tech" placeholder="AUTO">
+             </div>
+             <div class="field-group">
+               <label>SOMA (MÁX)</label>
+               <input type="number" id="f-soma-max" class="input-tech" placeholder="AUTO">
+             </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+             <div class="field-group">
+               <label>MÁX. PARES</label>
+               <input type="number" id="f-pares" class="input-tech" placeholder="--">
+             </div>
+             <div class="field-group">
+               <label>MÁX. PRIMOS</label>
+               <input type="number" id="f-primos" class="input-tech" placeholder="--">
+             </div>
+          </div>
+          <div class="field-group">
+            <label>LIMITE DE SEQUÊNCIA</label>
+            <input type="number" id="f-seq" class="input-tech" value="3">
+          </div>
+          <div class="field-group" style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" id="f-fib" style="accent-color: var(--accent-primary);">
+            <label style="margin: 0;">INCLUIR FIBONACCI ⭐</label>
+          </div>
+          
+          <div class="mt-4">
+            <label style="font-size: 0.75rem; font-weight: 800; color: var(--accent-primary); border-bottom: 1px solid var(--accent-primary); display: block; margin-bottom: 1rem;">VOLANTE INTERATIVO (FIXAR/EXCLUIR)</label>
+            <div id="interactive-grid" class="loto-grid"></div>
+            <div style="font-size: 0.6rem; color: var(--text-muted); margin-top: 0.5rem;">Clique = Fixar (🎯) | Duplo Clique = Excluir (❌)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Results -->
+      <div class="hud-panel">
+        <div class="panel-header"><h3>MÓDULO DE SAÍDA</h3></div>
+        <div class="panel-content" style="display: flex; flex-direction: column;">
+          <button class="btn-tech" id="btn-generate" onclick="runGeneration()">GERAR JOGOS</button>
+          
+          <div id="gen-progress" class="hidden mt-4" style="height: 2px; background: var(--border-dim);">
+            <div id="gen-bar" style="height: 100%; background: var(--accent-primary); width: 0%;"></div>
+          </div>
+
+          <div id="output-container" style="margin-top: 1.5rem; flex: 1; overflow-y: auto; max-height: 600px; padding-right: 0.5rem;">
+            <div style="color: var(--text-muted); text-align: center; border: 1px dashed var(--border-bright); padding: 2rem;">AGUARDANDO INÍCIO...</div>
+          </div>
+
+          <div id="output-actions" class="hidden mt-4" style="display: flex; gap: 4px;">
+            <button class="strat-btn" onclick="copyAll()">COPIAR TUDO</button>
+            <button class="strat-btn" onclick="downloadTXT()">BAIXAR TXT</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: PROBABILITY ANALYSIS -->
+  <div id="tab-prob" class="tab-pane">
+    <div class="hud-grid" style="grid-template-columns: 1fr 2fr;">
+      <div class="hud-panel">
+        <div class="panel-header"><h3>HISTÓRICO OFICIAL</h3> <button class="strat-btn" style="width: auto;" onclick="refreshRealData()">ATUALIZAR</button></div>
+        <div id="real-data-panel" class="panel-content">
+          <div style="color: var(--text-muted);">CONECTANDO À API...</div>
+        </div>
+      </div>
+      <div class="hud-panel">
+        <div class="panel-header"><h3>MAPA DE CALOR (ÚLT. 20 CONCURSOS)</h3></div>
+        <div class="panel-content">
+          <div id="heatmap-grid" class="loto-grid"></div>
+          <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+             <div class="tag" style="background: #ef4444; color: #fff;">QUENTES</div>
+             <div class="tag" style="background: #3b82f6; color: #fff;">MÉDIAS</div>
+             <div class="tag" style="background: #10b981; color: #fff;">FRIAS</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="hud-panel mt-4">
+      <div class="panel-header"><h3>MATRIZ COMPARATIVA DE PROBABILIDADES</h3></div>
+      <div class="panel-content">
+        <canvas id="probChart" height="100"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: MONTE CARLO -->
+  <div id="tab-stats" class="tab-pane">
+    <div class="hud-panel">
+      <div class="panel-header"><h3>SIMULADOR MONTE CARLO (MÓDULO ASSÍNCRONO)</h3></div>
+      <div class="panel-content">
+        <div style="display: flex; gap: 1rem; align-items: flex-end;">
+          <div class="field-group" style="flex: 1;">
+            <label>TOTAL DE ITERAÇÕES</label>
+            <input type="number" id="mc-iterations" class="input-tech" value="100000" step="100000" max="1000000">
+          </div>
+          <div class="field-group" style="flex: 1;">
+            <button class="btn-tech" onclick="startMonteCarlo()">EXECUTAR SIMULAÇÃO</button>
+          </div>
+        </div>
+        
+        <div id="mc-running" class="hidden">
+          <div style="display: flex; justify-content: center; padding: 2rem;">
+            <div style="border: 2px solid var(--accent-primary); border-top-color: transparent; width: 40px; height: 40px; border-radius: 50%; animate: spin 1s linear infinite;"></div>
+          </div>
+          <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+        </div>
+
+        <div id="mc-results" class="hidden mt-4">
+           <div class="flex-between">
+             <h4>RESULTADOS DA SIMULAÇÃO</h4>
+             <span id="mc-time" class="tag">0ms</span>
+           </div>
+           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1.5rem;" id="mc-stats-grid">
+           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: SAFETY -->
+  <div id="tab-safety" class="tab-pane">
+    <div class="warning-box">
+      <h2>⚠️ AVISO DE JOGO RESPONSÁVEL</h2>
+      <p>Loterias são sistemas de entretenimento baseados em azar. Nenhuma estratégia matemática, filtro ou análise pode garantir resultados vitoriosos. O vício em jogo é uma patologia real reconhecida pela OMS.</p>
+    </div>
+    
+    <div class="hud-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="hud-panel">
+        <div class="panel-header"><h3>AUDITORIA FINANCEIRA</h3></div>
+        <div class="panel-content">
+          <div class="field-group">
+            <label>RENDA MENSAL (R$)</label>
+            <input type="number" id="s-income" class="input-tech" value="3000" oninput="calcSafeBudget()">
+          </div>
+          <div class="field-group">
+            <label>% DE RISCO PARA ENTRETENIMENTO</label>
+            <input type="range" id="s-pct" class="input-tech" min="1" max="10" value="2" oninput="calcSafeBudget()">
+          </div>
+          <div style="padding: 1rem; background: #000; border-left: 4px solid var(--accent-secondary);">
+            <label>LIMITE MENSAL RECOMENDADO</label>
+            <div id="s-result" style="font-size: 2rem; font-weight: 900; color: var(--accent-secondary);">R$ 60,00</div>
+          </div>
+        </div>
+      </div>
+      <div class="hud-panel">
+        <div class="panel-header"><h3>DESMISTIFICADOR</h3></div>
+        <div class="panel-content">
+           <div style="display: flex; flex-direction: column; gap: 1rem;">
+             <div style="background: rgba(255,255,255,0.02); padding: 1rem; border: 1px solid var(--border-dim);">
+               <strong style="color: var(--accent-danger);">MITO:</strong> "Números atrasados têm mais chance de sair."<br>
+               <small>VERDADE: Cada sorteio é independente e não tem memória. Todos os números têm a mesma chance sempre.</small>
+             </div>
+             <div style="background: rgba(255,255,255,0.02); padding: 1rem; border: 1px solid var(--border-dim);">
+               <strong style="color: var(--accent-danger);">MITO:</strong> "Sequências como 1-2-3-4-5-6 nunca saem."<br>
+               <small>VERDADE: Estatisticamente, essa combinação exata tem a mesma probabilidade de sair do que qualquer outra.</small>
+             </div>
+           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  /* 
+     =========================================================
+     STRATOS ENGINE: LOGIC & MATH
+     ========================================================= 
+  */
+
+  const LOTERIAS = {
+    MEGA_SENA: { name: "MEGA-SENA", total: 60, min: 6, max: 20, grid: [10, 6], color: "#06b6d4", api: "megasena", price: 5.0 },
+    LOTOFACIL: { name: "LOTOFÁCIL", total: 25, min: 15, max: 20, grid: [5, 5], color: "#930089", api: "lotofacil", price: 3.0 },
+    QUINA: { name: "QUINA", total: 80, min: 5, max: 15, grid: [10, 8], color: "#3b82f6", api: "quina", price: 2.5 },
+    LOTOMANIA: { name: "LOTOMANIA", total: 100, min: 50, max: 50, grid: [10, 10], color: "#f78100", api: "lotomania", price: 3.0 },
+    DUPLA_SENA: { name: "DUPLA-SENA", total: 50, min: 6, max: 15, grid: [10, 5], color: "#e11d48", api: "duplasena", price: 2.5 }
+  };
+
+  const API_BASE = "https://loteriascaixa-api.herokuapp.com/api";
+  let activeMod = "MEGA_SENA";
+  let activeStrat = "bal";
+  let fixedNums = new Set();
+  let exclNums = new Set();
+  let cacheData = {};
+  let probChart = null;
+
+  const Engine = {
+    fatorial(n) {
+      let res = 1n;
+      for (let i = 2n; i <= BigInt(n); i++) res *= i;
+      return res;
+    },
+    combinacoes(n, k) {
+      if (k > n) return 0n;
+      return Engine.fatorial(n) / (Engine.fatorial(k) * Engine.fatorial(n - k));
+    },
+    ehPrimo(n) {
+      if (n < 2) return false;
+      for (let i = 2; i <= Math.sqrt(n); i++) if (n % i === 0) return false;
+      return true;
+    },
+    getFib(max) {
+      let f = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
+      return f.filter(v => v <= max);
+    },
+    getRandom(min, max) {
+      const arr = new Uint32Array(1);
+      window.crypto.getRandomValues(arr);
+      return min + (arr[0] % (max - min + 1));
+    },
+    getBordas(n, cols, rows) {
+      let r = Math.floor((n-1)/cols) + 1;
+      let c = ((n-1)%cols) + 1;
+      return (r === 1 || r === rows || c === 1 || c === cols);
+    }
+  };
+
+  function showTab(tab) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    event.currentTarget.classList.add('active');
+    if(tab === 'prob') refreshRealData();
+  }
+
+  function updateRangeLabel() {
+    document.getElementById('label-num-val').innerText = document.getElementById('range-num').value;
+    updateProbStats();
+  }
+
+  function setStrat(s, btn) {
+    activeStrat = s;
+    document.querySelectorAll('.strat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function initModality() {
+    activeMod = document.getElementById('sel-mod').value;
+    const m = LOTERIAS[activeMod];
+    const range = document.getElementById('range-num');
+    range.min = m.min;
+    range.max = m.max;
+    range.value = m.min;
+    document.getElementById('label-num-val').innerText = m.min;
+    
+    fixedNums.clear();
+    exclNums.clear();
+    renderInteractiveGrid();
+    updateProbStats();
+    refreshRealData(true);
+  }
+
+  function renderInteractiveGrid() {
+    const m = LOTERIAS[activeMod];
+    const container = document.getElementById('interactive-grid');
+    container.innerHTML = '';
+    container.style.gridTemplateColumns = `repeat(${m.grid[0]}, 1fr)`;
+    
+    for (let i = 1; i <= m.total; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'loto-cell';
+      cell.innerText = i;
+      if (fixedNums.has(i)) cell.classList.add('fixed');
+      if (exclNums.has(i)) cell.classList.add('excluded');
+
+      cell.onclick = () => {
+        if (fixedNums.has(i)) { fixedNums.delete(i); }
+        else { fixedNums.add(i); exclNums.delete(i); }
+        renderInteractiveGrid();
+      };
+      cell.ondblclick = (e) => {
+        e.preventDefault();
+        if (exclNums.has(i)) { exclNums.delete(i); }
+        else { exclNums.add(i); fixedNums.delete(i); }
+        renderInteractiveGrid();
+      };
+      container.appendChild(cell);
+    }
+  }
+
+  function updateProbStats() {
+    const m = LOTERIAS[activeMod];
+    const k = parseInt(document.getElementById('range-num').value);
+    const comb = Engine.combinacoes(m.total, k);
+    document.getElementById('stat-comb').innerText = comb.toLocaleString();
+    document.getElementById('stat-prob').innerText = `1 in ${comb.toLocaleString()}`;
+  }
+
+  function clearFilters() {
+    document.querySelectorAll('.input-tech').forEach(i => { if(i.type === 'number') i.value = ''; });
+    document.getElementById('f-fib').checked = false;
+    fixedNums.clear();
+    exclNums.clear();
+    renderInteractiveGrid();
+  }
+
+  async function runGeneration() {
+    const out = document.getElementById('output-container');
+    const bar = document.getElementById('gen-bar');
+    const barCont = document.getElementById('gen-progress');
+    const actions = document.getElementById('output-actions');
+    
+    out.innerHTML = '<div style="color: var(--accent-primary);">CALCULANDO VETORES...</div>';
+    barCont.classList.remove('hidden');
+    bar.style.width = '0%';
+    actions.classList.add('hidden');
+
+    const m = LOTERIAS[activeMod];
+    const k = parseInt(document.getElementById('range-num').value);
+    const qty = parseInt(document.getElementById('input-qty').value);
+    
+    // Filters
+    const f = {
+      somaMin: parseInt(document.getElementById('f-soma-min').value) || 0,
+      somaMax: parseInt(document.getElementById('f-soma-max').value) || 9999,
+      pares: parseInt(document.getElementById('f-pares').value) || k,
+      primos: parseInt(document.getElementById('f-primos').value) || k,
+      seq: parseInt(document.getElementById('f-seq').value) || k,
+      fib: document.getElementById('f-fib').checked
+    };
+
+    let results = [];
+    let attempts = 0;
+    
+    const fibPool = Engine.getFib(m.total);
+
+    const generateOne = () => {
+      let ticket = new Set(fixedNums);
+      
+      // Strategy injection
+      if(activeStrat === 'hot' && cacheData[activeMod]?.hot) {
+        let hot = cacheData[activeMod].hot.filter(n => !exclNums.has(n));
+        hot.sort(() => Math.random() - 0.5);
+        hot.slice(0, Math.floor(k * 0.4)).forEach(n => { if(ticket.size < k) ticket.add(n); });
+      } else if(activeStrat === 'border') {
+        let borders = [];
+        for(let i=1; i<=m.total; i++) if(Engine.getBordas(i, m.grid[0], m.grid[1]) && !exclNums.has(i)) borders.push(i);
+        borders.sort(() => Math.random() - 0.5);
+        borders.slice(0, Math.floor(k * 0.5)).forEach(n => { if(ticket.size < k) ticket.add(n); });
+      }
+
+      let pool = [];
+      for (let i = 1; i <= m.total; i++) if (!ticket.has(i) && !exclNums.has(i)) pool.push(i);
+      pool.sort(() => Math.random() - 0.5);
+
+      while (ticket.size < k && pool.length > 0) ticket.add(pool.pop());
+      
+      let arr = Array.from(ticket).sort((a,b) => a-b);
+      
+      // Filter validation
+      const soma = arr.reduce((a,b) => a+b, 0);
+      if (soma < f.somaMin || soma > f.somaMax) return null;
+      
+      const pCount = arr.filter(n => n % 2 === 0).length;
+      if (pCount > f.pares) return null;
+      
+      const primCount = arr.filter(n => Engine.ehPrimo(n)).length;
+      if (primCount > f.primos) return null;
+      
+      let maxSeq = 1, curSeq = 1;
+      for(let i=1; i<arr.length; i++) {
+        if(arr[i] === arr[i-1] + 1) { curSeq++; maxSeq = Math.max(maxSeq, curSeq); }
+        else curSeq = 1;
+      }
+      if (maxSeq > f.seq) return null;
+
+      if (f.fib && !arr.some(n => fibPool.includes(n))) return null;
+
+      return {
+        nums: arr,
+        meta: { soma, pares: pCount, impares: k-pCount, primos: primCount, seq: maxSeq }
+      };
+    };
+
+    const interval = setInterval(() => {
+      attempts++;
+      let g = generateOne();
+      if (g) {
+        if (!results.some(r => r.nums.join(',') === g.nums.join(','))) results.push(g);
+      }
+      
+      bar.style.width = (results.length / qty * 100) + '%';
+      
+      if (results.length >= qty || attempts > 10000) {
+        clearInterval(interval);
+        barCont.classList.add('hidden');
+        renderResults(results);
+        if(results.length > 0) actions.classList.remove('hidden');
+      }
+    }, 1);
+  }
+
+  function renderResults(res) {
+    const out = document.getElementById('output-container');
+    if (res.length === 0) {
+      out.innerHTML = '<div style="color: var(--accent-danger);">ERRO CRÍTICO: NENHUMA COMBINAÇÃO VÁLIDA ENCONTRADA. FLEXIBILIZE OS FILTROS.</div>';
+      return;
+    }
+    out.innerHTML = '';
+    res.forEach((r, i) => {
+      const card = document.createElement('div');
+      card.className = 'game-card';
+      card.innerHTML = `
+        <div class="flex-between">
+          <strong style="font-size: 0.7rem; color: var(--text-dim);">VEC_ID: JOGO_${i+1}</strong>
+          <span class="tag" style="background: var(--accent-primary); color: #000;">VERIFICADO</span>
+        </div>
+        <div class="ball-container">
+          ${r.nums.map(n => `<div class="ball">${n < 10 ? '0'+n : n}</div>`).join('')}
+        </div>
+        <div class="meta-tags">
+          <span class="tag">SUM: ${r.meta.soma}</span>
+          <span class="tag">P/I: ${r.meta.pares}p/${r.meta.impares}i</span>
+          <span class="tag">PRIM: ${r.meta.primos}</span>
+          <span class="tag">SEQ: ${r.meta.seq}</span>
+        </div>
+      `;
+      out.appendChild(card);
+    });
+  }
+
+  async function refreshRealData(silent = false) {
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    const panel = document.getElementById('real-data-panel');
+    
+    if(!silent) panel.innerHTML = '<div style="color: var(--accent-primary);">CONSULTANDO API...</div>';
+    
+    try {
+      const m = LOTERIAS[activeMod];
+      const res = await fetch(`${API_BASE}/${m.api}/latest`);
+      if(!res.ok) throw new Error();
+      const data = await res.json();
+      
+      dot.className = "status-dot dot-online";
+      txt.innerText = "ONLINE / TEMPO REAL";
+      
+      if(!silent) {
+        panel.innerHTML = `
+          <div style="background: #000; padding: 1rem; border: 1px solid var(--border-bright);">
+            <div class="flex-between">
+              <h2 style="color: var(--accent-primary); font-size: 1.5rem;">#${data.concurso}</h2>
+              <span class="tag">${data.data}</span>
+            </div>
+            <div class="ball-container" style="margin-top: 1rem;">
+              ${data.dezenas.map(n => `<div class="ball" style="background: var(--accent-primary); color: #000;">${n}</div>`).join('')}
+            </div>
+            <div class="mt-4" style="border-top: 1px solid var(--border-dim); padding-top: 1rem;">
+               <div class="flex-between">
+                 <span style="font-size: 0.7rem;">ESTIMATIVA PRÓX.:</span>
+                 <strong style="color: var(--accent-secondary);">${data.valorEstimadoProximoConcurso.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</strong>
+               </div>
+               ${data.acumulou ? '<div class="tag" style="background: var(--accent-danger); color: #fff; width: 100%; text-align: center; margin-top: 0.5rem;">PRÊMIO ACUMULADO</div>' : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      // Heatmap Logic
+      const hRes = await fetch(`${API_BASE}/${m.api}`);
+      const hData = await hRes.json();
+      const last20 = hData.slice(0, 20);
+      const freq = {};
+      for(let i=1; i<=m.total; i++) freq[i] = 0;
+      last20.forEach(d => d.dezenas.forEach(n => freq[parseInt(n)]++));
+      
+      const freqArr = Object.entries(freq).map(([n,f]) => ({n:parseInt(n), f}));
+      freqArr.sort((a,b) => b.f - a.f);
+      const hot = freqArr.slice(0, Math.ceil(m.total * 0.2)).map(v => v.n);
+      const cold = freqArr.slice(-Math.ceil(m.total * 0.2)).map(v => v.n);
+      
+      cacheData[activeMod] = { hot, cold, freq };
+      renderHeatmap(m, freq, hot, cold);
+      renderProbChart();
+      
+    } catch(e) {
+      dot.className = "status-dot dot-offline";
+      txt.innerText = "OFFLINE / SIMULADO";
+      if(!silent) panel.innerHTML = '<div style="color: var(--accent-danger);">FALHA NA CONEXÃO API. USANDO MODELOS SIMULADOS.</div>';
+    }
+  }
+
+  function renderHeatmap(m, freq, hot, cold) {
+    const grid = document.getElementById('heatmap-grid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = `repeat(${m.grid[0]}, 1fr)`;
+    for(let i=1; i<=m.total; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'loto-cell';
+      cell.innerText = i;
+      if(hot.includes(i)) cell.classList.add('heat-hot');
+      else if(cold.includes(i)) cell.classList.add('heat-cold');
+      else if(freq[i] > 0) cell.classList.add('heat-med');
+      grid.appendChild(cell);
+    }
+  }
+
+  function renderProbChart() {
+    const ctx = document.getElementById('probChart');
+    if(!ctx) return;
+    
+    if(probChart) probChart.destroy();
+    
+    const labels = Object.keys(LOTERIAS);
+    const data = labels.map(k => {
+      const m = LOTERIAS[k];
+      return Number(Engine.combinacoes(m.total, m.min));
+    });
+
+    probChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels.map(l => LOTERIAS[l].name),
+        datasets: [{
+          label: 'ESCALA LOGARÍTMICA DE POSSIBILIDADES',
+          data: data,
+          backgroundColor: labels.map(l => LOTERIAS[l].color),
+          borderWidth: 0
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        scales: { x: { type: 'logarithmic', grid: { color: '#1e293b' } }, y: { grid: { display: false } } },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+
+  // Monte Carlo with Worker-like async simulation
+  async function startMonteCarlo() {
+    const m = LOTERIAS[activeMod];
+    const iter = parseInt(document.getElementById('mc-iterations').value);
+    const resultsDiv = document.getElementById('mc-results');
+    const runningDiv = document.getElementById('mc-running');
+    const statsGrid = document.getElementById('mc-stats-grid');
+    
+    runningDiv.classList.remove('hidden');
+    resultsDiv.classList.add('hidden');
+    
+    const t0 = performance.now();
+    
+    // Simulate user ticket
+    const userNums = [];
+    while(userNums.length < m.min) {
+      let r = Engine.getRandom(1, m.total);
+      if(!userNums.includes(r)) userNums.push(r);
+    }
+
+    const hitMap = {};
+    for(let i=0; i<=m.min; i++) hitMap[i] = 0;
+
+    // Chunking to keep UI responsive
+    const chunkSize = 25000;
+    for(let i=0; i<iter; i+=chunkSize) {
+      await new Promise(r => setTimeout(r, 0));
+      const end = Math.min(i + chunkSize, iter);
+      for(let s=i; s<end; s++) {
+        let draw = new Set();
+        while(draw.size < m.min) draw.add(Engine.getRandom(1, m.total));
+        let hits = 0;
+        draw.forEach(n => { if(userNums.includes(n)) hits++; });
+        hitMap[hits]++;
+      }
+    }
+
+    const t1 = performance.now();
+    runningDiv.classList.add('hidden');
+    resultsDiv.classList.remove('hidden');
+    document.getElementById('mc-time').innerText = `${Math.round(t1-t0)}ms`;
+    
+    statsGrid.innerHTML = '';
+    for(let i=m.min; i>=0; i--) {
+      const box = document.createElement('div');
+      box.style.background = '#000';
+      box.style.padding = '1rem';
+      box.style.border = `1px solid ${i >= 4 ? 'var(--accent-secondary)' : 'var(--border-dim)'}`;
+      const pct = (hitMap[i] / iter * 100).toFixed(5);
+      box.innerHTML = `
+        <div style="font-size: 0.65rem; color: var(--text-dim);">${i} ACERTOS</div>
+        <div style="font-size: 1.1rem; font-weight: 900; color: ${i >= 4 ? 'var(--accent-secondary)' : 'var(--text-main)'};">${hitMap[i].toLocaleString()}</div>
+        <div style="font-size: 0.7rem; color: var(--accent-primary);">${pct}%</div>
+      `;
+      statsGrid.appendChild(box);
+    }
+  }
+
+  function calcSafeBudget() {
+    const inc = parseFloat(document.getElementById('s-income').value) || 0;
+    const pct = parseFloat(document.getElementById('s-pct').value) || 0;
+    const res = (inc * (pct / 100));
+    document.getElementById('s-result').innerText = res.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+  }
+
+  function copyAll() {
+    let txt = Array.from(document.querySelectorAll('.game-card')).map(c => {
+      let nums = Array.from(c.querySelectorAll('.ball')).map(b => b.innerText).join(' ');
+      return nums;
+    }).join('\n');
+    navigator.clipboard.writeText(txt).then(() => alert("COPIADO PARA A ÁREA DE TRANSFERÊNCIA"));
+  }
+
+  function downloadTXT() {
+    let txt = Array.from(document.querySelectorAll('.game-card')).map((c, i) => {
+      let nums = Array.from(c.querySelectorAll('.ball')).map(b => b.innerText).join(' ');
+      return `JOGO_${i+1}: ${nums}`;
+    }).join('\n');
+    const blob = new Blob([txt], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stratos_export_${new Date().getTime()}.txt`;
+    a.click();
+  }
+
+  // Theme toggle
+  document.getElementById('theme-btn').onclick = () => {
+    document.body.classList.toggle('light-mode');
+  };
+
+  // Init
+  initModality();
+  calcSafeBudget();
+
+</script>
+</body>
+</html>

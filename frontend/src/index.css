@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-base: var(--bg-base);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface-default: var(--surface-default);
+  --color-surface-raised: var(--surface-raised);
+  --color-int-primary: var(--int-primary-default);
+  --color-int-primary-hover: var(--int-primary-hover);
+  --color-int-primary-on: var(--int-primary-on);
+  --color-content-primary: var(--content-primary);
+  --color-content-secondary: var(--content-secondary);
+  --color-border-default: var(--border-default);
+  --animate-float: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+:root {
+  /* LIGHT MODE TOKENS */
+  --bg-base: #FFFFFF;
+  --bg-subtle: #F4F4F4;
+  --bg-muted: #EAEAEA;
+  --surface-default: #FFFFFF;
+  --surface-raised: #FFFFFF;
+  --border-default: #DFDEDE;
+  --border-strong: #C8C8C8;
+  --border-focus: #B3C50E;
+  --content-primary: #383839;
+  --content-secondary: #4A4A4B;
+  --content-tertiary: #8C8C8C;
+  --int-primary-default: #B3C50E;
+  --int-primary-hover: #8FA00B;
+  --int-primary-active: #7A8A09;
+  --int-primary-on: #383839;
+  --int-secondary-default: #383839;
+  --int-secondary-hover: #474647;
+  --int-secondary-on: #FFFFFF;
+  
+  --status-success-bg: rgba(52,174,83,0.10);
+  --status-success-content: #1E7A3A;
+  --status-danger-bg: rgba(217,64,64,0.10);
+  --status-danger-content: #B83535;
+}
+
+.dark {
+  /* DARK MODE TOKENS */
+  --bg-base: #222223;
+  --bg-subtle: #383839;
+  --bg-muted: rgba(255,255,255,0.05);
+  --surface-default: #1E1E1F;
+  --surface-raised: #2A2A2B;
+  --border-default: rgba(255,255,255,0.10);
+  --border-strong: rgba(255,255,255,0.18);
+  --content-primary: rgba(255,255,255,0.95);
+  --content-secondary: rgba(255,255,255,0.65);
+  --content-tertiary: rgba(255,255,255,0.40);
+  --int-primary-default: #B3C50E;
+  --int-primary-hover: #C4D218;
+  --int-primary-on: #222223;
+  --int-secondary-default: rgba(255,255,255,0.12);
+  --int-secondary-hover: rgba(255,255,255,0.18);
+}
+
+body {
+  margin: 0;
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--bg-base);
+  color: var(--content-primary);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
